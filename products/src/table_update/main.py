@@ -31,7 +31,15 @@ def send_events(events: List[dict]):
     logger.info("Sending %d events to EventBridge", len(events))
     # EventBridge only supports batches of up to 10 events
     for i in range(0, len(events), 10):
-        eventbridge.put_events(Entries=events[i:i+10])
+        logger.debug({
+            "message": "PutEvent payload",
+            "entries": events[i:i+10]
+        })
+        retval = eventbridge.put_events(Entries=events[i:i+10])
+        logger.debug({
+            "message": "PutEvent response",
+            "response": retval
+        })
 
 
 @logger.inject_lambda_context

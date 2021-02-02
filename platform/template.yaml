@@ -139,8 +139,6 @@ Resources:
       CodeUri: src/on_connect/
       Environment:
         Variables:
-          # EventBridge rule for OnEventsFunction
-          EVENT_RULE_NAME: !Ref OnEventsFunctionEvent
           LISTENER_TABLE_NAME: !Ref ListenerTable
       Policies:
         - arn:aws:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy
@@ -151,12 +149,6 @@ Resources:
                 - dynamodb:PutItem
               Resource:
                 - !GetAtt ListenerTable.Arn
-            - Effect: Allow
-              Action:
-                - events:EnableRule
-                - events:DescribeRule
-              Resource:
-                - !GetAtt OnEventsFunctionEvent.Arn
 
   OnConnectPermission:
     Type: AWS::Lambda::Permission
@@ -196,8 +188,6 @@ Resources:
       CodeUri: src/on_disconnect/
       Environment:
         Variables:
-          # EventBridge rule for OnEventsFunction
-          EVENT_RULE_NAME: !Ref OnEventsFunctionEvent
           LISTENER_TABLE_NAME: !Ref ListenerTable
       Policies:
         - arn:aws:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy
@@ -209,11 +199,6 @@ Resources:
                 - dynamodb:Scan
               Resource:
                 - !GetAtt ListenerTable.Arn
-            - Effect: Allow
-              Action:
-                - events:DisableRule
-              Resource:
-                - !GetAtt OnEventsFunctionEvent.Arn
 
   OnDisconnectPermission:
     Type: AWS::Lambda::Permission
@@ -311,8 +296,8 @@ Resources:
           Properties:
             EventBusName: !Ref EventBus
             Pattern:
-              account:
-                - !Ref AWS::AccountId
+              source:
+                - prefix: ecommerce.
       EventInvokeConfig:
         # Put failed events on a DLQ
         DestinationConfig:
