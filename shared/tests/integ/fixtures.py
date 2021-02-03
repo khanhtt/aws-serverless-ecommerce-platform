@@ -45,7 +45,7 @@ def listener():
 
         uri = urlparse(url)
         session = boto3.Session()
-        credentials = session.get_credentials()
+        credentials = session.get_credentials().get_frozen_credentials()
 
         t = datetime.datetime.utcnow()
         amzdate = t.strftime('%Y%m%dT%H%M%SZ')
@@ -53,6 +53,9 @@ def listener():
         canonical_uri = uri.path
         canonical_headers = f"host:{uri.netloc}\nx-amz-date:{amzdate}\n"
         signed_headers = "host;x-amz-date"
+        if credentials.token:
+            canonical_headers += f"x-amz-security-token:{credentials.token}\n"
+            signed_headers += ";x-amz-security-token"
         payload_hash = hashlib.sha256(('').encode('utf-8')).hexdigest()
         canonical_request = f"GET\n{canonical_uri}\n\n{canonical_headers}\n{signed_headers}\n{payload_hash}"
         canonical_request_enc = hashlib.sha256(canonical_request.encode('utf-8')).hexdigest()
@@ -62,7 +65,12 @@ def listener():
         signature = hmac.new(signing_key, (string_to_sign).encode('utf-8'), hashlib.sha256).hexdigest()
         authorization_header = f"AWS4-HMAC-SHA256 Credential={credentials.access_key}/{credential_scope}, SignedHeaders={signed_headers}, Signature={signature}"
 
-        return {'x-amz-date':amzdate, 'Authorization':authorization_header}
+        headers = {'x-amz-date':amzdate, 'Authorization':authorization_header}
+
+        if credentials.token:
+            headers["X-Amz-Security-Token"] = credentials.token
+
+        return headers
 
     def _listener(service_name: str, gen_function: Callable[[None], None], test_function: Optional[Callable[[dict], bool]]=None, wait_time: int=15):
         """
